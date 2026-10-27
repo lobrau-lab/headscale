@@ -382,6 +382,8 @@ type OIDCConfig struct {
 
 type DERPConfig struct {
 	ServerEnabled                      bool
+	FallbackSTUNServers                []string
+	FallbackTURNServers                []string
 	AutomaticallyAddEmbeddedDerpRegion bool
 	ServerRegionID                     tailcfg.DERPRegionID
 	ServerRegionCode                   string
@@ -1148,6 +1150,8 @@ func derpConfig() DERPConfig {
 
 	return DERPConfig{
 		ServerEnabled:                      serverEnabled,
+		FallbackSTUNServers:                viper.GetStringSlice("derp.fallback_stun_servers"),
+		FallbackTURNServers:                viper.GetStringSlice("derp.fallback_turn_servers"),
 		ServerRegionID:                     tailcfg.DERPRegionID(serverRegionID),
 		ServerRegionCode:                   serverRegionCode,
 		ServerRegionName:                   serverRegionName,

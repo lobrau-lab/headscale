@@ -9,10 +9,12 @@ import (
 	"hash/crc64"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 
@@ -127,6 +129,66 @@ func GetDERPMap(cfg types.DERPConfig) (*tailcfg.DERPMap, error) {
 	}
 
 	derpMap := mergeDERPMaps(derpMaps)
+
+	if len(cfg.FallbackSTUNServers) > 0 || len(cfg.FallbackTURNServers) > 0 {
+		if derpMap.Regions == nil {
+			derpMap.Regions = make(map[tailcfg.DERPRegionID]*tailcfg.DERPRegion)
+		}
+
+		regionID := tailcfg.DERPRegionID(9999)
+
+		// If the user already specified region 9999, we should find a free one
+		for {
+			if _, exists := derpMap.Regions[regionID]; !exists {
+				break
+			}
+			regionID++
+		}
+
+		var nodes []*tailcfg.DERPNode
+
+		for i, addr := range cfg.FallbackSTUNServers {
+			host, portStr, err := net.SplitHostPort(addr)
+			if err != nil {
+				continue
+			}
+			port, _ := strconv.Atoi(portStr)
+
+			nodes = append(nodes, &tailcfg.DERPNode{
+				Name:     fmt.Sprintf("fallback-stun-%d", i),
+				RegionID: regionID,
+				HostName: host,
+				STUNPort: port,
+				STUNOnly: true,
+			})
+		}
+
+		for i, addr := range cfg.FallbackTURNServers {
+			host, portStr, err := net.SplitHostPort(addr)
+			if err != nil {
+				continue
+			}
+			port, _ := strconv.Atoi(portStr)
+
+			nodes = append(nodes, &tailcfg.DERPNode{
+				Name:     fmt.Sprintf("fallback-turn-%d", i),
+				RegionID: regionID,
+				HostName: host,
+				STUNPort: port,
+				STUNOnly: true,
+			})
+		}
+
+		if len(nodes) > 0 {
+			derpMap.Regions[regionID] = &tailcfg.DERPRegion{
+				RegionID:   regionID,
+				RegionCode: "fallback",
+				RegionName: "Fallback STUN/TURN Clusters",
+				Nodes:      nodes,
+			}
+		}
+	}
+
 	shuffleDERPMap(derpMap)
 
 	return derpMap, nil

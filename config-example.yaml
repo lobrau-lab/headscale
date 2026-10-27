@@ -110,6 +110,12 @@ derp:
     ipv4: 198.51.100.1
     ipv6: 2001:db8::1
 
+  # Fallback STUN/TURN clusters to use when DERP is not available
+  fallback_stun_servers:
+    - "stun.l.google.com:19302"
+  # fallback_turn_servers:
+  #   - "turn.example.com:3478"
+
   # List of externally available DERP maps encoded in JSON
   urls:
     - https://controlplane.tailscale.com/derpmap/default
